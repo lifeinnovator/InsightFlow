@@ -2,27 +2,39 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import AIGeneratorModal from "@/components/builder/AIGeneratorModal";
 
 export default function SurveyBuilderPage() {
+    const [isAIModalOpen, setIsAIModalOpen] = useState(false);
     const [questions, setQuestions] = useState([
         { id: 1, type: "likert", title: "Based on your experience, how satisfied are you with the interface?", scale: 7 }
     ]);
 
     return (
         <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-zinc-50 dark:bg-zinc-950">
+            <AIGeneratorModal isOpen={isAIModalOpen} onClose={() => setIsAIModalOpen(false)} />
+
             {/* Left Sidebar: Question Library */}
             <aside className="w-64 border-r border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
                 <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-500 mb-6">Question Types</h3>
                 <div className="space-y-3">
                     {[
+                        { id: "ai", name: "AI Question Generator", icon: "✨", primary: true },
                         { id: "mc", name: "Multiple Choice", icon: "🔘" },
                         { id: "likert", name: "Likert Scale", icon: "📏" },
                         { id: "text", name: "Open-ended", icon: "✍️" },
                         { id: "rank", name: "Ranking", icon: "🔢" },
                     ].map(type => (
-                        <button key={type.id} className="flex w-full items-center gap-3 rounded-xl border border-zinc-100 p-3 text-sm font-medium transition-colors hover:border-brand hover:bg-brand/5 dark:border-zinc-800">
+                        <button
+                            key={type.id}
+                            onClick={() => type.id === 'ai' && setIsAIModalOpen(true)}
+                            className={`flex w-full items-center gap-3 rounded-xl border p-3 text-sm font-medium transition-colors ${type.primary
+                                ? "bg-brand border-brand text-white shadow-lg shadow-brand/20"
+                                : "border-zinc-100 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 hover:border-brand hover:bg-brand/5"
+                                }`}
+                        >
                             <span>{type.icon}</span>
-                            <span className="text-zinc-900 dark:text-zinc-100">{type.name}</span>
+                            <span>{type.name}</span>
                         </button>
                     ))}
                 </div>
