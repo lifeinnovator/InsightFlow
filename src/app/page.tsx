@@ -4,12 +4,15 @@ import { useEffect, useState } from "react";
 import OnboardingModal from "@/components/ui/OnboardingModal";
 import CreateProjectModal from "@/components/ui/CreateProjectModal";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 export default function Home() {
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [projects, setProjects] = useState<string[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const supabase = createClient();
 
   useEffect(() => {
     // Show onboarding for new users (simulated)
@@ -17,15 +20,41 @@ export default function Home() {
     if (!hasBeenOnboarded) {
       setIsOnboardingOpen(true);
     }
+
+    fetchProjects();
   }, []);
+
+  const fetchProjects = async () => {
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (data) setProjects(data);
+    if (error) console.error("Error fetching projects:", error);
+    setIsLoading(false);
+  };
 
   const handleCloseOnboarding = () => {
     setIsOnboardingOpen(false);
     localStorage.setItem("insightflow_onboarded", "true");
   };
 
-  const handleCreateProject = (name: string) => {
-    setProjects([...projects, name]);
+  const handleCreateProject = async (name: string) => {
+    // Insert into DB
+    const { data, error } = await supabase
+      .from('projects')
+      .insert([{ name }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating project:", error);
+      alert("Failed to create project");
+    } else if (data) {
+      setProjects([data, ...projects]);
+    }
     setIsCreateModalOpen(false);
   };
 
@@ -53,7 +82,11 @@ export default function Home() {
         </button>
       </div>
 
-      {projects.length === 0 ? (
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
+        </div>
+      ) : projects.length === 0 ? (
         <div className="flex h-[calc(100vh-300px)] flex-col items-center justify-center text-center">
           <div className="mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-900">
             <span className="text-4xl text-zinc-400">📄</span>
@@ -82,14 +115,21 @@ export default function Home() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {projects.map((p, i) => (
-            <div key={i} className="group relative rounded-2xl border border-zinc-200 bg-white p-6 transition-all hover:border-brand dark:border-zinc-800 dark:bg-zinc-950">
-              <div className="mb-4 flex items-center justify-between">
-                <div className="h-10 w-10 rounded-lg bg-brand/10 flex items-center justify-center text-brand">📊</div>
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-md text-zinc-500">Design Phase</span>
+          {projects.map((p) => (
+            <div key={p.id} className="group relative rounded-2xl border border-zinc-200 bg-white p-6 transition-all hover:border-brand dark:border-zinc-800 dark:bg-zinc-950 flex flex-col justify-between">
+              <div>
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="h-10 w-10 rounded-lg bg-brand/10 flex items-center justify-center text-brand">📊</div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-md text-zinc-500">
+                    {p.status === 'active' ? 'Design Phase' : p.status}
+                  </span>
+                </div>
+                <h4 className="font-bold text-zinc-900 dark:text-white text-lg">{p.name}</h4>
+                <p className="mt-1 text-xs text-zinc-500 italic">
+                  Created: {new Date(p.created_at).toLocaleDateString()}
+                </p>
+                {p.description && <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2">{p.description}</p>}
               </div>
-              <h4 className="font-bold text-zinc-900 dark:text-white text-lg">{p}</h4>
-              <p className="mt-1 text-xs text-zinc-500 italic">Last modified: Just now</p>
 
               <div className="mt-8 flex items-center justify-between border-t border-zinc-100 dark:border-zinc-800 pt-4">
                 <div className="flex -space-x-2">
@@ -98,7 +138,7 @@ export default function Home() {
                   ))}
                 </div>
                 <button
-                  onClick={() => router.push(`/projects/${i}/edit`)}
+                  onClick={() => router.push(`/projects/${p.id}/edit`)}
                   className="text-xs font-bold text-brand hover:underline"
                 >
                   Edit Survey →

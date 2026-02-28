@@ -13,19 +13,36 @@ const navItems = [
 
 export default function Sidebar() {
     const pathname = usePathname();
+    const projectIdMatch = pathname.match(/\/projects\/([^/]+)/);
+    const projectId = projectIdMatch ? projectIdMatch[1] : null;
+
+    const navItems = projectId ? [
+        { name: "대시보드", href: `/`, icon: "🏠" },
+        { name: "설문 설계", href: `/projects/${projectId}/edit`, icon: "📝" },
+        { name: "배포 관리", href: `/projects/${projectId}/distribute`, icon: "🚀" },
+        { name: "응답 관리", href: `/projects/${projectId}/responses`, icon: "👥" },
+        { name: "원시 데이터", href: `/projects/${projectId}/data`, icon: "📁" },
+    ] : [
+        { name: "대시보드", href: "/", icon: "📊" },
+    ];
 
     return (
         <aside className="fixed left-0 top-16 z-40 h-[calc(100vh-64px)] w-64 border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
             <nav className="flex flex-col gap-1 p-4">
                 {navItems.map((item) => {
-                    const isActive = pathname === item.href;
+                    // Match paths accurately for active state
+                    let isActive = pathname === item.href;
+                    if (projectId && item.href !== '/') {
+                        isActive = pathname.includes(item.href);
+                    }
+
                     return (
                         <Link
                             key={item.href}
                             href={item.href}
                             className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive
-                                    ? "bg-zinc-100 text-brand dark:bg-zinc-900"
-                                    : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
+                                ? "bg-zinc-100 text-brand dark:bg-zinc-900"
+                                : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
                                 }`}
                         >
                             <span className="text-lg">{item.icon}</span>
